@@ -141,3 +141,100 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- =========================================================================
+-- 5. ACTIVATIECODES — codes die het park aan gasten geeft
+-- =========================================================================
+-- Wie is beheerder? Zet dit één keer aan voor het account van je broer:
+--   update public.profiles set is_admin = true where email = 'broer@funforest.nl';
+alter table public.profiles add column if not exists is_admin boolean not null default false;
+
+create table if not exists public.activation_codes (
+  code       text primary key,                       -- bijv. FF-7K2M9Q
+  label      text not null default '',               -- voor wie / waarvoor
+  max_uses   integer not null default 0,             -- 0 = onbeperkt
+  used_count integer not null default 0,
+  active     boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.activation_codes enable row level security;
+
+-- Geen lees-policy voor gasten: de lijst is niet uit te lezen via de API.
+-- Alleen beheerders (profiles.is_admin) zien en bewerken de codes.
+drop policy if exists "beheerder leest codes" on public.activation_codes;
+create policy "beheerder leest codes"
+  on public.activation_codes for select
+  using (exists (
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin
+  ));
+
+drop policy if exists "beheerder maakt codes" on public.activation_codes;
+create policy "beheerder maakt codes"
+  on public.activation_codes for insert
+  with check (exists (
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin
+  ));
+
+drop policy if exists "beheerder wijzigt codes" on public.activation_codes;
+create policy "beheerder wijzigt codes"
+  on public.activation_codes for update
+  using (exists (
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin
+  ));
+
+drop policy if exists "beheerder verwijdert codes" on public.activation_codes;
+create policy "beheerder verwijdert codes"
+  on public.activation_codes for delete
+  using (exists (
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin
+  ));
+
+-- Controleren of een code geldig is (zonder dat de lijst gelezen kan worden)
+create or replace function public.is_valid_activation_code(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v public.activation_codes%rowtype;
+begin
+  select * into v
+    from public.activation_codes
+   where code = upper(trim(coalesce(p_code, '')))
+     and active
+   limit 1;
+  if not found then
+    return false;
+  end if;
+  if v.max_uses > 0 and v.used_count >= v.max_uses then
+    return false;
+  end if;
+  return true;
+end;
+$$;
+
+revoke all on function public.is_valid_activation_code(text) from public;
+grant execute on function public.is_valid_activation_code(text) to anon, authenticated;
+
+-- Gebruik van een code registreren (na een geslaagde registratie)
+create or replace function public.use_activation_code(p_code text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.activation_codes
+     set used_count = used_count + 1
+   where code = upper(trim(coalesce(p_code, '')))
+     and active
+     and (max_uses = 0 or used_count < max_uses);
+end;
+$$;
+
+revoke all on function public.use_activation_code(text) from public;
+grant execute on function public.use_activation_code(text) to authenticated;
+
+-- Klaarzetten:  -- update public.profiles set is_admin = true where email = '…';

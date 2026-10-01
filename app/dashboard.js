@@ -63,6 +63,19 @@ export default function DashboardScreen() {
       route: "/info",
       color: colors.lightBrown,
     },
+    // Alleen zichtbaar voor beheerders (het park)
+    ...(user?.isAdmin
+      ? [
+          {
+            id: 5,
+            title: "Activatiecodes",
+            description: "Codes maken voor gasten",
+            icon: "confirmation-number",
+            route: "/codes",
+            color: colors.success,
+          },
+        ]
+      : []),
   ];
 
   return (

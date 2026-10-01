@@ -170,6 +170,26 @@ Wat je dan krijgt:
 > `EXPO_PUBLIC_SUPABASE_ANON_KEY` dan ook in *Project Settings → Environment
 > Variables* (de `.env` wordt niet meegenomen in de deploy).
 
+## Activatiecodes uitdelen (voor het park)
+
+1. Voer [`supabase/schema.sql`](supabase/schema.sql) uit — daarin zit ook de
+   tabel `activation_codes` met bijbehorende regels.
+2. Zet jezelf één keer aan als beheerder (SQL Editor):
+
+   ```sql
+   update public.profiles set is_admin = true where email = 'broer@funforest.nl';
+   ```
+
+3. Log in in de app: er komt een menu-item **Activatiecodes** bij.
+4. Klik **Maken** (label optioneel, bijv. "Familie Jansen") → **Kopieer** →
+   stuur die code naar de gast. Die vult hem in bij *Activeer je kaart*.
+5. Met één tik zet je een code op **Uit**; hoe vaak hij gebruikt is zie je
+   ernaast. De lijst is met Row Level Security niet uit te lezen door gasten.
+
+Zonder Supabase blijft de noodcode `FUNFOREST-ABO` werken (staat in
+[`lib/access.js`](lib/access.js)). Let op: in een **publieke** repository is die
+code leesbaar — maak het repo privé of gebruik de Supabase-codes.
+
 ## Huisstijl
 
 De kleuren komen 1:1 uit de theme-CSS van funforest.nl — inclusief hun

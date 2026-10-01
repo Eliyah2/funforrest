@@ -96,10 +96,14 @@ function RootNavigator() {
         <Stack.Screen
           name="profile"
           options={{ headerShown: false, animation: "slide_from_right" }}
+        />        <Stack.Screen
+          name="info"
+          options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
-          name="info"            options={{ headerShown: false, animation: "slide_from_right" }}
-          />
+          name="codes"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
         </Stack>
       </View>
     </SafeAreaView>

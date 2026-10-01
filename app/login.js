@@ -75,9 +75,9 @@ export default function LoginScreen() {
       setFormError("Wachtwoord moet minstens 6 tekens lang zijn.");
       return;
     }
-    if (!checkAccessCode(accessCode)) {
+    if (!(await checkAccessCode(accessCode))) {
       setFormError(
-        "Deze activatiecode hoort niet bij een abonnement. Vraag de code bij het park.",
+        "Deze activatiecode klopt niet (meer). Vraag een nieuwe code bij het park.",
       );
       return;
     }
