@@ -194,15 +194,21 @@ Wat je dan krijgt:
    update public.profiles set is_admin = true where email = 'broer@funforest.nl';
    ```
 
-3. Log in in de app: er komt een menu-item **Activatiecodes** bij.
+3. Log in in de app: er komt een menu-item **Activatiecodes** bij (of open
+   direct `/codes`).
 4. Klik **Maken** (label optioneel, bijv. "Familie Jansen") → **Kopieer** →
    stuur die code naar de gast. Die vult hem in bij *Activeer je kaart*.
 5. Met één tik zet je een code op **Uit**; hoe vaak hij gebruikt is zie je
    ernaast. De lijst is met Row Level Security niet uit te lezen door gasten.
 
-Zonder Supabase blijft de noodcode `FUNFOREST-ABO` werken (staat in
-[`lib/access.js`](lib/access.js)). Let op: in een **publieke** repository is die
-code leesbaar — maak het repo privé of gebruik de Supabase-codes.
+Zonder Supabase is er **géén codescherm**: het menu-item komt alleen bij een
+beheerder, en die vlag (`profiles.is_admin`) bestaat dan niet. Deel je nog
+geen Supabase-codes, dan werkt voor iedereen dezelfde noodcode
+`FUNFOREST-ABO` (staat in [`lib/access.js`](lib/access.js) — wijzig je die,
+zet de app daarna opnieuw live). Let op: in een **publieke** repository is die
+code leesbaar — maak het repo privé of gebruik de Supabase-codes. Voor live
+gebruik moeten eerst de Supabase-sleutels in Vercel staan (zie hierboven),
+daarna werkt het beheerscherm ook op de site.
 
 ## Check-in via QR-scan (alleen de scan telt)
 
