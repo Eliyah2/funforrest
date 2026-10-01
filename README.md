@@ -75,11 +75,15 @@ dan komt er een server-backend (bijv. Supabase) bij die de codes controleert.
   (werkt ook in de browser)
 - **Dashboard** — bezoekenteller, menu en een bel met het aantal aankomende
   reserveringen
-- **Seizoenskaart** — digitale **Seizoenkaart** met een **echte QR-code**, uniek
-  pasnummer (FF-######), geldig tot en met 31 december van het lidmaatschapsjaar
-  (zoals de echte kaart), een check-in-knop die je bezoeken telt, en de
-  **echte voordelen** van funforest.nl: onbeperkt klimmen, alle vier de
-  klimbossen, unieke parcoursen en geen losse tickets
+- **Seizoenskaart** — digitale **Seizoenkaart** met een **echte QR-code** die
+  verwijst naar de scantoonbank, uniek pasnummer (FF-######), geldig tot en
+  met 31 december van het lidmaatschapsjaar (zoals de echte kaart), je
+  check-instatus van vandaag en de **echte voordelen** van funforest.nl:
+  onbeperkt klimmen, alle vier de klimbossen, unieke parcoursen en geen losse
+  tickets
+- **Check-in (scantoonbank)** — openbaar scherm voor het personeel: de QR van
+  een gast scannen (of het kaartnummer typen) zet het bezoek op het account,
+  telt de teller en blokkeert een tweede check-in dezelfde dag
 - **Reserveringen** — kies een datum in de **maandkalender** (niet meer vast
   aan 14 dagen), zie per dag de **echte openingstijden** en de tijdslots die
   daarbij passen. Dagen "op aanvraag" of gesloten zijn duidelijk uitgeschakeld,
@@ -199,6 +203,30 @@ Wat je dan krijgt:
 Zonder Supabase blijft de noodcode `FUNFOREST-ABO` werken (staat in
 [`lib/access.js`](lib/access.js)). Let op: in een **publieke** repository is die
 code leesbaar — maak het repo privé of gebruik de Supabase-codes.
+
+## Check-in via QR-scan (alleen de scan telt)
+
+De QR-code op de seizoenkaart bevat een link naar `/checkin?pass=FF-######`.
+Scannen ís de check-in: er is geen knop meer waarmee een gast zelf bezoeken
+bijschrijft.
+
+- **Scan = bezoek**: de scantoonbank zet het bezoek op het account en verhoogt
+  de teller (`profiles.visits`)
+- **Maximaal één keer per dag**: een tweede scan vandaag toont *Vandaag al
+  ingecheckt* met het tijdstip van de eerste scan — het telt niet twee keer
+  (`unique (user_id, check_date)`)
+- **Zonder login**: het personeel hoeft niet ingelogd te zijn; de registratie
+  loopt via de databasefunctie `record_checkin` (sectie 6 van
+  [`supabase/schema.sql`](supabase/schema.sql))
+- **Kaartnummer**: het profielnummer, en anders het nummer dat de app uit het
+  e-mailadres berekent — beide herkent de functie
+- **Zonder Supabase** werkt scannen alleen op het apparaat waar de accounts
+  staan (lokale modus, met een waarschuwing in beeld); met Supabase werkt het
+  vanaf elke telefoon van het park
+
+Testen: open de kaart, kopieer het kaartnummer en ga naar
+`/checkin?pass=FF-123456` — of gebruik de knop *Volgende scan* om een nummer
+in te typen.
 
 ## Huisstijl
 

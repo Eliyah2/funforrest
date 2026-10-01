@@ -339,7 +339,7 @@ export default function ReservationsScreen() {
     }
     setMessage({
       type: "success",
-      text: `Gereserveerd: ${formatDate(selectedDate)} om ${selectedTimeSlot}. Check in bij de ingang om een bezoek te tellen.`,
+      text: `Gereserveerd: ${formatDate(selectedDate)} om ${selectedTimeSlot}. Laat bij de ingang je kaart scannen — dat telt als je check-in.`,
     });
     setSelectedDate(null);
     setSelectedTimeSlot(null);

@@ -237,4 +237,131 @@ $$;
 revoke all on function public.use_activation_code(text) from public;
 grant execute on function public.use_activation_code(text) to authenticated;
 
+-- =========================================================================
+-- 6. CHECK-INS — QR scannen bij de ingang telt als bezoek
+-- =========================================================================
+-- Maximaal één check-in per gast per dag. Registreren kan alleen via
+-- record_checkin() hieronder, zodat het scannen (zonder login) en het
+-- bijhouden van de teller altijd via één pad lopen.
+create table if not exists public.checkins (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  pass_number text,
+  check_date  date not null default current_date,
+  created_at  timestamptz not null default now(),
+  unique (user_id, check_date)                 -- dubbele scan telt niet twee keer
+);
+
+create index if not exists checkins_date_idx on public.checkins (check_date);
+
+alter table public.checkins enable row level security;
+
+-- Gasten lezen alleen hun eigen check-ins (voor de teller op de kaart).
+drop policy if exists "eigen check-ins zien" on public.checkins;
+create policy "eigen check-ins zien"
+  on public.checkins for select
+  using (auth.uid() = user_id);
+-- Geen insert-policy voor clients: zie record_checkin().
+
+-- Kaartnummer zoals de app het berekent als een account er geen heeft:
+-- FF- plus zes cijfers e-mailhash (zelfde formule als in lib/checkins.js).
+create or replace function public.derived_pass_number(p_email text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  v_hash bigint := 0;
+  v_i    integer;
+begin
+  for v_i in 1 .. length(coalesce(p_email, '')) loop
+    v_hash := (v_hash * 31 + ascii(substr(p_email, v_i, 1))) % 4294967296;
+  end loop;
+  return 'FF-' || lpad((v_hash % 1000000)::text, 6, '0');
+end;
+$$;
+
+-- QR scannen: registreren als check-in + bezoeken tellen.
+-- Werkt voor niet-ingelogde scanners (personeel bij de ingang) én voor een
+-- ingelogde gast die geen kaartnummer meegaf.
+create or replace function public.record_checkin(p_pass text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_pass    text := upper(trim(coalesce(p_pass, '')));
+  v_profile public.profiles%rowtype;
+  v_row     public.checkins%rowtype;
+begin
+  if v_pass <> '' then
+    -- Gescand kaartnummer: match op het opgeslagen nummer, anders op het
+    -- nummer dat de app uit het e-mailadres berekent.
+    select * into v_profile
+      from public.profiles
+     where upper(coalesce(pass_number, '')) = v_pass
+        or (pass_number is null and public.derived_pass_number(email) = v_pass)
+     limit 1;
+  elsif v_uid is not null then
+    select * into v_profile from public.profiles where id = v_uid;
+  else
+    return jsonb_build_object('status', 'geen_pasmunt');
+  end if;
+
+  if v_profile.id is null then
+    return jsonb_build_object('status', 'onbekend');
+  end if;
+
+  -- Vandaag al ingecheckt?
+  select * into v_row
+    from public.checkins
+   where user_id = v_profile.id
+     and check_date = current_date;
+
+  if v_row.id is not null then
+    return jsonb_build_object(
+      'status', 'al_ingecheckt',
+      'name', v_profile.name,
+      'visits', v_profile.visits,
+      'time', to_char(v_row.created_at at time zone 'Europe/Amsterdam', 'HH24:MI')
+    );
+  end if;
+
+  insert into public.checkins (user_id, pass_number)
+  values (v_profile.id, coalesce(v_profile.pass_number, public.derived_pass_number(v_profile.email)))
+  on conflict (user_id, check_date) do nothing
+  returning * into v_row;
+
+  if v_row.id is null then
+    -- net voor: iemand anders was eerder
+    select * into v_row
+      from public.checkins
+     where user_id = v_profile.id and check_date = current_date;
+    return jsonb_build_object(
+      'status', 'al_ingecheckt',
+      'name', v_profile.name,
+      'visits', v_profile.visits,
+      'time', to_char(v_row.created_at at time zone 'Europe/Amsterdam', 'HH24:MI')
+    );
+  end if;
+
+  update public.profiles
+     set visits = visits + 1
+   where id = v_profile.id
+  returning visits into v_profile.visits;
+
+  return jsonb_build_object(
+    'status', 'ok',
+    'name', v_profile.name,
+    'visits', v_profile.visits,
+    'time', to_char(v_row.created_at at time zone 'Europe/Amsterdam', 'HH24:MI')
+  );
+end;
+$$;
+
+revoke all on function public.record_checkin(text) from public;
+grant execute on function public.record_checkin(text) to anon, authenticated;
+
 -- Klaarzetten:  -- update public.profiles set is_admin = true where email = '…';

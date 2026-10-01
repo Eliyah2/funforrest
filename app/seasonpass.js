@@ -1,19 +1,11 @@
 import { Colors } from "@/constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "@/lib/AuthProvider";
-
-// Uniek pasnummer afgeleid van het e-mailadres (altijd hetzelfde per account)
-function getPassId(email = "") {
-  let hash = 0;
-  for (let i = 0; i < email.length; i++) {
-    hash = (hash * 31 + email.charCodeAt(i)) >>> 0;
-  }
-  return `FF-${String(hash % 1000000).padStart(6, "0")}`;
-}
+import { checkinUrl, passIdFor, visitsLabel } from "@/lib/checkins";
 
 // Kaart geldig tot en met 31 december van het seizoen waarin het lidmaatschap
 // begon — zoals de echte Fun Forest Seizoenkaart ("geldig tot einde van 2026").
@@ -31,8 +23,25 @@ function getValidUntil(iso) {
 export default function SeasonPassScreen() {
   const router = useRouter();
   const colors = Colors.light;
-  const { user, addVisit } = useAuth();
+  const { user, getCheckinToday, refreshUser } = useAuth();
   const [notice, setNotice] = useState(null);
+  // Check-in van vandaag: undefined = laden, null = nog niet ingecheckt
+  const [todayCheckin, setTodayCheckin] = useState(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await refreshUser();
+      const checkin = await getCheckinToday();
+      if (!cancelled) setTodayCheckin(checkin);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Alleen opnieuw ophalen als dit account anders wordt
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]);
+
   if (!user) {
     return <Redirect href="/login" />;
   }
@@ -43,12 +52,13 @@ export default function SeasonPassScreen() {
     validUntil: getValidUntil(user?.memberSinceISO),
     // Echt kaartnummer van de gast (uit de bevestigingsmail) of een eigen
     // nummer als die nog niet is ingevuld
-    passId: user?.passNumber || getPassId(user?.email),
+    passId: user?.passNumber || passIdFor(user?.email),
     holder: "Houder",
     visits: user?.visits || 0,
   };
 
-  const qrValue = `FUNFOREST ${seasonPass.passId} | ${seasonPass.name} | geldig tot ${seasonPass.validUntil}`;
+  // De QR verwijst naar de scantoonbank: gescand worden ís de check-in
+  const qrValue = checkinUrl(seasonPass.passId);
 
   // ---- Kaart downloaden als PNG (browser) ---------------------------------
   const loadImage = (src) =>
@@ -399,7 +409,7 @@ export default function SeasonPassScreen() {
                 color: colors.lightBrown,
               }}
             >
-              Scan deze code bij de ingang
+              Laat scannen bij de ingang — dat telt als je check-in
             </Text>
           </View>
 
@@ -678,31 +688,46 @@ export default function SeasonPassScreen() {
           </Text>
         </View>
 
+        {/* Check-instatus: alleen de scan telt */}
+        <View
+          style={{
+            backgroundColor:
+              todayCheckin && todayCheckin.date ? colors.paleGreen : colors.white,
+            borderRadius: 12,
+            paddingVertical: 16,
+            paddingHorizontal: 14,
+            marginBottom: 16,
+            borderLeftWidth: 4,
+            borderLeftColor:
+              todayCheckin && todayCheckin.date ? colors.success : colors.lightGray,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          <MaterialIcons
+            name={todayCheckin && todayCheckin.date ? "check-circle" : "schedule"}
+            size={26}
+            color={todayCheckin && todayCheckin.date ? colors.success : colors.lightBrown}
+            style={{ marginRight: 12 }}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>
+              {todayCheckin === undefined
+                ? "Check-instatus laden…"
+                : todayCheckin
+                  ? `Vandaag ingecheckt om ${todayCheckin.time}`
+                  : "Nog niet ingecheckt vandaag"}
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.lightBrown, marginTop: 2 }}>
+              {todayCheckin && todayCheckin.date
+                ? `Je staat op ${visitsLabel(seasonPass.visits)}. Morgen weer scannen.`
+                : "Laat je QR-code scannen bij de ingang — dat telt als je bezoek."}
+            </Text>
+          </View>
+        </View>
+
         {/* Action Buttons */}
         <View style={{ flexDirection: "row", gap: 12 }}>
-          <TouchableOpacity
-            onPress={() => {
-              addVisit();
-              setNotice(`Ingecheckt! Je hebt nu ${user.visits + 1} bezoeken genoten.`);
-            }}
-            style={{
-              flex: 1,
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              paddingVertical: 14,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                color: colors.white,
-                fontWeight: "700",
-                fontSize: 14,
-              }}
-            >
-              Check-in
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDownload}
             style={{
