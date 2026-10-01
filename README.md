@@ -125,7 +125,17 @@ vercel --prod        # live zetten
 ```
 
 Of koppel de repo in het Vercel-dashboard; de build-commando's komen uit
-`vercel.json`. Lokaal de productiebuild bekijken zoals Vercel hem serveert:
+`vercel.json`. Zo is het nu ingericht: het Vercel-project **funforest-app** bouwt
+uit de GitHub-repo `Eliyah2/funforest-app`, terwijl de bewaarrepo `origin` =
+`Eliyah2/funforrest` is. Push daarom na elke commit naar beide remotes, anders
+komt de update niet live:
+
+```bash
+git push origin main              # bewaarrepo (funforrest)
+git push funforest-app main       # Vercel bouwt hieruit -> live
+```
+
+Lokaal de productiebuild bekijken zoals Vercel hem serveert:
 
 ```bash
 npx expo export -p web
