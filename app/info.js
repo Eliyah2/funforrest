@@ -7,10 +7,13 @@ import { useAuth } from "@/lib/AuthProvider";
 import {
   DEFAULT_PARK,
   PARKS,
+  inWinterstop,
+  lastOpenDate,
   loadParkDays,
   subscribeParkDays,
+  winterstopStart,
 } from "@/lib/parkHours";
-import { dateKey, formatBookingDate } from "@/lib/reservations";
+import { dateKey, formatBookingDate, parseKey } from "@/lib/reservations";
 
 const WEEKDAYS_LONG = [
   "zondag",
@@ -55,6 +58,10 @@ export default function InfoScreen() {
   }
 
   const days = calendar.days || {};
+  // Winterstop: park dicht van eind oktober tot begin maart
+  const winterstop = inWinterstop(days);
+  const lastOpen = lastOpenDate(days);
+  const winterStarts = winterstopStart(days, lastOpen);
 
   // De eerstkomende 14 dagen met echte tijden
   const upcoming = [];
@@ -238,6 +245,49 @@ export default function InfoScreen() {
                 ? `Live vanuit het park: ${openCount} geopende dagen gepland.`
                 : "Binnenkort gepubliceerd op de kalender."}
         </Text>
+
+        {(winterstop || winterStarts) && (
+          <View
+            style={{
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              marginBottom: 14,
+              borderLeftWidth: 4,
+              borderLeftColor: colors.accent,
+              flexDirection: "row",
+            }}
+          >
+            <MaterialIcons
+              name="severe-cold"
+              size={20}
+              color={colors.accent}
+              style={{ marginRight: 10, marginTop: 2 }}
+            />
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 12,
+                color: colors.text,
+                lineHeight: 18,
+                fontWeight: "500",
+              }}
+            >
+              <Text style={{ fontWeight: "700" }}>
+                {winterstop ? "Winterstop." : "Binnenkort winterstop."}
+              </Text>{" "}
+              {winterstop
+                ? "Van eind oktober tot begin maart is het park gesloten."
+                : `Vanaf ${winterStarts ? formatBookingDate(parseKey(winterStarts)) : "eind oktober"} tot begin maart is het park gesloten — plan je bezoek vóór die datum.`}{" "}
+              Laatste geopende dag in de kalender:{" "}
+              {lastOpen ? formatBookingDate(parseKey(lastOpen)) : "–"}.
+              {winterstop
+                ? " Zodra de nieuwe tijden gepubliceerd zijn, staan ze hier — en kun je weer reserveren."
+                : ""}
+            </Text>
+          </View>
+        )}
 
         <View style={{ marginBottom: 8 }}>
           {upcoming.length === 0 && !loading && (

@@ -5,9 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useAuth } from "@/lib/AuthProvider";
 import {
+  inWinterstop,
+  lastOpenDate,
   loadParkDays,
   slotsForDay,
   subscribeParkDays,
+  winterstopStart,
 } from "@/lib/parkHours";
 import {
   CAPACITY,
@@ -119,6 +122,10 @@ export default function ReservationsScreen() {
     (d) => d.status === "open"
   ).length;
   const lastPlannable = calendar.lastDate;
+  // Winterstop: het park is dicht van eind oktober tot begin maart
+  const lastOpen = lastOpenDate(days);
+  const winterstop = inWinterstop(days, todayKey);
+  const winterStarts = winterstopStart(days, lastOpen);
 
   // Maandnavigatie: van deze maand tot en met de laatst gepubliceerde maand
   const minMonth = new Date(
@@ -129,7 +136,7 @@ export default function ReservationsScreen() {
   const maxMonth = lastPlannable
     ? new Date(
         parseInt(lastPlannable.slice(0, 4), 10),
-        parseInt(lastPlannable.slice(5, 7), 10) - 1,
+        parseInt(lastPlannable.slice(5, 7), 10) + 1, // 2 extra maanden: winterstop tonen
         1
       )
     : new Date(
@@ -189,6 +196,8 @@ export default function ReservationsScreen() {
     const isSelected = selectedKey === key;
     const isOpen = info && info.status === "open";
     const bookable = isOpen && !isPast;
+    const beyondSeason = Boolean(lastOpen && key > lastOpen);
+    const winterLabel = narrow ? "winter" : "winterstop";
     const statusLabel = info
       ? info.status === "open"
         ? shortHours(info)
@@ -197,11 +206,17 @@ export default function ReservationsScreen() {
             ? "aanvr."
             : "aanvraag"
           : info.status === "gesloten"
-            ? narrow
-              ? "dicht"
-              : "gesloten"
-            : "volgt"
-      : "volgt";
+            ? beyondSeason
+              ? winterLabel
+              : narrow
+                ? "dicht"
+                : "gesloten"
+            : beyondSeason
+              ? winterLabel
+              : "volgt"
+      : beyondSeason
+        ? winterLabel
+        : "volgt";
 
     const backgroundColor = isSelected
       ? colors.primary
@@ -425,9 +440,13 @@ export default function ReservationsScreen() {
           >
             {loadingCalendar
               ? "Echte openingstijden laden…"
-              : lastPlannable
-                ? `Plan tot en met ${formatDate(parseKey(lastPlannable))}. Kies een datum die jou uitkomt.`
-                : "Kies een datum die jou uitkomt."}
+              : winterstop
+                ? `Winterstop: het park is dicht${winterStarts ? ` vanaf ${formatDate(parseKey(winterStarts))}` : " van eind oktober"} tot begin maart. Laatste geopende dag in de kalender: ${formatDate(parseKey(lastOpen))}. Reserveren gaat weer open zodra er nieuwe tijden zijn.`
+                : winterStarts
+                  ? `Binnenkort winterstop: vanaf ${formatDate(parseKey(winterStarts))} is het park dicht tot begin maart (laatste geopende dag: ${formatDate(parseKey(lastOpen))}). Plan je bezoek vóór die datum.`
+                  : lastPlannable
+                  ? `Plan tot en met ${formatDate(parseKey(lastPlannable))}. Kies een datum die jou uitkomt.`
+                  : "Kies een datum die jou uitkomt."}
           </Text>
         </View>
 
@@ -648,6 +667,22 @@ export default function ReservationsScreen() {
                 Kalender volgt
               </Text>
             </View>
+            {winterStarts && (
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: "#7FB3D5",
+                    marginRight: 6,
+                  }}
+                />
+                <Text style={{ fontSize: 11, color: colors.lightBrown }}>
+                  Winterstop
+                </Text>
+              </View>
+            )}
           </View>
 
           {bookableDays > 0 && (
