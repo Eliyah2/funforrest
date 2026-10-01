@@ -1,0 +1,40 @@
+FUNFOREST APP - ZO START JE HET
+===============================
+
+1. Installeer Node.js (als je die nog niet hebt):  https://nodejs.org
+   Klik bij installeren overal op "Next".
+
+2. Dubbelklik op  start.bat
+   Het eerste moment installeert alles (even geduld, +/- 2 minuten).
+
+3. Er komt een QR-code in beeld:
+   - iPhone: open de Camera-app en scan de code
+   - Android: open de Expo Go-app en scan de code
+
+4. Kies "Activeer je kaart", vul je naam, e-mail en wachtwoord in én de
+   ACTIVATIECODE van je seizoenkaart (standaard:  FUNFOREST-ABO ) en klaar.
+   Zonder die code kan er niet geregistreerd worden — de app is alleen voor
+   vaste abonnementhouders.
+
+   De code wijzigen? Open  lib\access.js  en pas  ACCESS_CODE  aan.
+   Code leeg ("") maken? Dan verdwijnt registreren helemaal en kan er alleen
+   nog ingelogd worden met bestaande accounts.
+
+Wil je de app in je browser zien? Typ in plaats van start.bat in een
+terminal (Start-knop > "cmd"):
+
+   npx expo start --web
+
+WAT IS ER NIEUW?
+- Reserveren kan nu ver vooruit: je bladert door de maanden en ziet per dag
+  de ECHTE openingstijden van Fun Forest Venlo (uit de kalender van
+  funforest.nl). Dagen die gesloten zijn of "op aanvraag" zijn kun je niet
+  kiezen, dat staat er duidelijk bij.
+- Het infoscherm toont het echte adres (Verlengde Trappistenweg 35),
+  telefoonnummer (088 - 369 7000) en de eerstkomende geopende dagen.
+- De app past zich aan op telefoon én laptop: niet inzoomen, alles blijft
+  netjes passen.
+
+Problemen?
+- "node wordt niet herkend": installeer Node.js opnieuw en sluit cmd af.
+- Telefoon en computer moeten op hetzelfde wifi-netwerk zitten.
