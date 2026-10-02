@@ -116,6 +116,12 @@ function RootNavigator() {
           name="checkin"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
+        {/* Zonder deze regel toont de router zijn eigen kop met de
+            routenaam "+not-found" bovenop onze 404-pagina. */}
+        <Stack.Screen
+          name="+not-found"
+          options={{ headerShown: false, animation: "none" }}
+        />
         </Stack>
       </View>
     </SafeAreaView>
