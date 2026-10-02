@@ -456,8 +456,11 @@ export default function ProfileScreen() {
         {/* Logout Button */}
         <TouchableOpacity
           onPress={() => {
+            // Alleen uitloggen: zodra user null is, doet dit scherm hierboven
+            // zelf een Redirect naar /login. Een extra router.replace erbij
+            // zorgt voor TWEE /login-stappen in de stack — de tweede blijft
+            // verborgen in de DOM en "terug" brengt je dan nergens heen.
             logout();
-            router.replace("/login");
           }}
           style={{
             backgroundColor: colors.white,

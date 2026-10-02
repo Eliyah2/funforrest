@@ -206,11 +206,13 @@ heeft — koppel dan Supabase (gratis tier volstaat):
 1. Maak een gratis project op <https://supabase.com>
 2. Plak [`supabase/schema.sql`](supabase/schema.sql) in **SQL Editor → New query**
    en draai het uit (tabellen, RLS en de capaciteitsregel)
-3. Kopieer `.env.example` naar `.env` en vul **Project URL** + **anon key** in
-   (Project Settings → API)
+3. Kopieer `.env.example` naar `.env` en vul **Project URL** + de
+   **anon/publishable key** in (Project Settings → API — bij nieuwe
+   Supabase-projecten heet die sleutel `sb_publishable_...`; die mag in de
+   app staan, dat is hij voor gemaakt)
 4. Zet in **Authentication → Sign In / Providers → Email** de schakelaar
    *Confirm email* uit, anders moet elke nieuwe gast eerst een
-   bevestigingsmail openen
+   bevestigingsmail openen voordat hij erin kan
 5. Herstart met `npm start`; klaar
 
 Wat je dan krijgt:
@@ -228,17 +230,72 @@ Wat je dan krijgt:
 
 > Draai je op Vercel? Zet `EXPO_PUBLIC_SUPABASE_URL` en
 > `EXPO_PUBLIC_SUPABASE_ANON_KEY` dan ook in *Project Settings → Environment
-> Variables* (de `.env` wordt niet meegenomen in de deploy).
+> Variables* (de `.env` wordt niet meegenomen in de deploy). Bij dit project
+> staan die er al (Production én Preview); [`tools/vercel-build.sh`](tools/vercel-build.sh)
+> leest ze en geeft ze door aan Expo.
+
+## Beheerder maken (nodig voor Activatiecodes en Beheer)
+
+Zonder beheerder zie je geen codescherm en geen beheerscherm. Het kost drie
+stappen en hoeft maar één keer.
+
+**1. Draai het schema** — anders bestaan de tabellen nog niet:
+
+- Open Supabase → **SQL Editor → New query**
+- Plak de hele inhoud van [`supabase/schema.sql`](supabase/schema.sql)
+- Klik **Run** (onderaan). Melding `Success. No rows returned` = goed.
+
+**2. Maak in de app een account aan met JOUW e-mailadres** (Registreren →
+naam, e-mail, wachtwoord, activatiecode). Dat account komt automatisch in de
+tabel `profiles` terecht.
+
+**3. Zet jezelf op beheerder** — SQL Editor → New query → plak → Run:
+
+```sql
+update public.profiles
+   set is_admin = true
+ where email = 'jouw-email-adres@voorbeeld.nl';
+```
+
+Vervang het e-mailadres door exact het adres waarmee je je hebt geregistreerd.
+Klaar? **Log een keer uit en weer in** (of ververs de pagina): er komen twee
+menu-items bij, **Activatiecodes** en **Beheer**.
+
+Controleer of het gelukt is:
+
+```sql
+select email, is_admin, pass_number from public.profiles order by created_at;
+```
+
+| Klopt het niet? | Controleer dan |
+| --- | --- |
+| Geen menu-items | Stap 1 gedraaid? E-mailadres in stap 3 exact gelijk? Opnieuw ingelogd? |
+| `relation "public.profiles" does not exist` | Stap 1 nog niet gedaan — draai eerst `schema.sql` |
+| `0 rows affected` | Het account bestaat nog niet in `profiles` — eerst in de app registreren |
+| Er komen twee accounts | Gebruik overal hetzelfde e-mailadres, ook hoofdletters |
+
+## Waar staat wat opgeslagen?
+
+| Gegevens | Met Supabase (nu) | Zonder Supabase (lokale modus) |
+| --- | --- | --- |
+| Account + wachtwoord | **database** (`auth.users`) | apparaat (localStorage) |
+| Naam, kaartnummer, bezoeken, admin-vlag | **database** (`profiles`) | apparaat |
+| Reserveringen | **database** (`reservations`, capaciteit 6 afgedwongen) | apparaat |
+| Check-ins per dag | **database** (`checkins`) | apparaat |
+| Activatiecodes | **database** (`activation_codes`) | bestaat niet |
+| Openingstijden | **niet** — cache van 6 uur in de browser (bewust, het is openbare data) | idem |
+
+> **Let op:** als Supabase aan staat maar `schema.sql` nog niet gedraaid is,
+> bestaan de tabellen nog niet. Accounts worden dan wel in `auth.users`
+> aangemaakt, maar naam en bezoeken kunnen nergens in bewaard worden. Draai
+> dus altijd eerst `schema.sql`.
 
 ## Activatiecodes uitdelen (voor het park)
 
 1. Voer [`supabase/schema.sql`](supabase/schema.sql) uit — daarin zit ook de
    tabel `activation_codes` met bijbehorende regels.
-2. Zet jezelf één keer aan als beheerder (SQL Editor):
-
-   ```sql
-   update public.profiles set is_admin = true where email = 'broer@funforest.nl';
-   ```
+2. Zet jezelf aan als beheerder: zie **Beheerder maken** hierboven (drie
+   stappen, één keer).
 
 3. Log in in de app: er komt een menu-item **Activatiecodes** bij (of open
    direct `/codes`).
