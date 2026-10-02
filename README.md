@@ -83,8 +83,15 @@ nieuwe code bij het park."*
 - **Login / Registreren** — inloggen, of als abonnementhouder je kaart
   activeren met een activatiecode; foutmeldingen en tips komen in beeld
   (werkt ook in de browser)
-- **Dashboard** — bezoekenteller, menu en een bel met het aantal aankomende
-  reserveringen
+- **Dashboard** — bovenaan de **vandaag-kaart**: of het park open is, tot hoe
+  laat, wat de volgende opene dag is (of dat de winterstop ingegaan is), jouw
+  eerstvolgende reservering en twee directe knoppen: *Mijn kaart* (QR) en
+  *Reserveren*. Daaronder de bezoekenteller, het menu en een bel met het
+  aantal aankomende reserveringen. Gasten hoeven dus nergens meer naar te
+  zoeken
+- **Pagina niet gevonden** — een eigen vriendelijke 404-pagina
+  (`app/+not-found.js`, wordt `dist/404.html`) met knoppen terug naar het
+  dashboard of de openingstijden
 - **Seizoenskaart** — digitale **Seizoenkaart** met een **echte QR-code** die
   verwijst naar de scantoonbank, uniek pasnummer (FF-######), geldig tot en
   met 31 december van het lidmaatschapsjaar (zoals de echte kaart), je

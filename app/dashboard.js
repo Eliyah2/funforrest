@@ -4,7 +4,20 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/lib/AuthProvider";
-import { loadReservations, upcomingFor } from "@/lib/reservations";
+import {
+    dateKey,
+    formatBookingDate,
+    loadReservations,
+    parseKey,
+    upcomingFor,
+} from "@/lib/reservations";
+import {
+    dayInfo,
+    inWinterstop,
+    loadParkDays,
+    subscribeParkDays,
+    winterstopStart,
+} from "@/lib/parkHours";
 import { supabaseEnabled } from "@/lib/supabase";
 
 export default function DashboardScreen() {
@@ -12,6 +25,7 @@ export default function DashboardScreen() {
   const colors = Colors.light;
   const { user } = useAuth();
   const [upcoming, setUpcoming] = useState([]);
+  const [calendar, setCalendar] = useState({ days: {} });
 
   // Aankomende reserveringen voor de teller op de bel
   useEffect(() => {
@@ -26,6 +40,22 @@ export default function DashboardScreen() {
       cancelled = true;
     };
   }, [user]);
+
+  // Openingstijden voor de "vandaag"-kaart bovenaan
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await loadParkDays();
+      if (!cancelled) setCalendar(result);
+    })();
+    const unsubscribe = subscribeParkDays((result) => {
+      if (!cancelled) setCalendar(result);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   if (!user) {
     return <Redirect href="/login" />;
@@ -93,6 +123,56 @@ export default function DashboardScreen() {
       : []),
   ];
 
+  // ------------------------------------------------------------
+  // Vandaag-kaart: is het park open, tot hoe laat, en wanneer is
+  // mijn volgende bezoek? Gasten hoeven hierdoor nergens meer te zoeken.
+  // ------------------------------------------------------------
+  const days = calendar.days || {};
+  const todayKey = dateKey(new Date());
+  const todayInfo = dayInfo(days, todayKey);
+  const hasCalendar = Object.keys(days).length > 0;
+  const winterstop = inWinterstop(days, todayKey);
+  const winterStart = winterstopStart(days);
+  const nextOpen = Object.values(days)
+    .filter((d) => d.status === "open" && d.date >= todayKey && d.open && d.close)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextVisit = upcoming[0] || null;
+
+  const toneColors = {
+    open: colors.success,
+    aanvraag: colors.primary,
+    dicht: colors.lightBrown,
+    laden: colors.lightGray,
+  };
+
+  let tone = "laden";
+  let statusTitle = "Openingstijden laden…";
+  let statusSub = "Een ogenblik geduld, dan weet je of je vandaag kunt klimmen.";
+
+  if (hasCalendar && winterstop) {
+    tone = "dicht";
+    statusTitle = "Nu winterstop";
+    statusSub = winterStart
+      ? `Het park is dicht sinds ${formatBookingDate(parseKey(winterStart))}. Jouw seizoenkaart blijft geldig zodra we weer open gaan.`
+      : "Het park is nu gesloten voor de winter. Jouw seizoenkaart blijft geldig zodra we weer open gaan.";
+  } else if (hasCalendar && todayInfo?.status === "open") {
+    tone = "open";
+    statusTitle = `Geopend tot ${todayInfo.close}`;
+    statusSub = todayInfo.estimated
+      ? `Vandaag naar verwachting van ${todayInfo.open} tot ${todayInfo.close} (richttijden — de kalender volgt nog).`
+      : `Vandaag van ${todayInfo.open} tot ${todayInfo.close} uur.`;
+  } else if (hasCalendar && todayInfo?.status === "aanvraag") {
+    tone = "aanvraag";
+    statusTitle = "Vandaag op aanvraag";
+    statusSub = "Klimmen op aanvraag: bel 088 - 369 7000 voor een tijd, of kies een open dag hieronder.";
+  } else if (hasCalendar) {
+    tone = "dicht";
+    statusTitle = "Vandaag gesloten";
+    statusSub = nextOpen
+      ? `Volgende open dag: ${formatBookingDate(parseKey(nextOpen.date))} van ${nextOpen.open} tot ${nextOpen.close} uur.`
+      : "Bekijk de planning voor de dagen die nog open zijn.";
+  }
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -158,6 +238,152 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+
+        {/* Vandaag-kaart: openingstijden + eigen volgende bezoek */}
+        <View
+          style={{
+            backgroundColor: colors.white,
+            borderRadius: 20,
+            padding: 18,
+            marginBottom: 18,
+            borderWidth: 1,
+            borderColor: colors.paleGreen,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
+            elevation: 2,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: toneColors[tone],
+                marginRight: 8,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "700",
+                color: colors.lightBrown,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              Vandaag · {formatBookingDate(parseKey(todayKey))}
+            </Text>
+          </View>
+
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "700",
+              color: colors.heading,
+              marginBottom: 6,
+            }}
+          >
+            {statusTitle}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.lightBrown, lineHeight: 19 }}>
+            {statusSub}
+          </Text>
+
+          {/* Eigen volgende bezoek: één tik naar de reserveringen */}
+          {nextVisit && (
+            <TouchableOpacity
+              onPress={() => router.push("/reservations")}
+              activeOpacity={0.75}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 14,
+                paddingTop: 14,
+                borderTopWidth: 1,
+                borderTopColor: colors.paleGreen,
+              }}
+            >
+              <MaterialIcons
+                name="event-available"
+                size={22}
+                color={colors.primary}
+                style={{ marginRight: 10 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: colors.lightBrown,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.6,
+                    marginBottom: 2,
+                  }}
+                >
+                  Jouw volgende bezoek
+                </Text>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>
+                  {formatBookingDate(parseKey(nextVisit.date))} · {nextVisit.time} uur
+                </Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color={colors.lightBrown} />
+            </TouchableOpacity>
+          )}
+
+          {/* Snelle acties: kaart tonen en reserveren zonder te zoeken */}
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/seasonpass")}
+              activeOpacity={0.85}
+              style={{
+                flex: 1,
+                backgroundColor: colors.primary,
+                borderRadius: 12,
+                paddingVertical: 13,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MaterialIcons
+                name="qr-code-2"
+                size={18}
+                color={colors.white}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={{ color: colors.white, fontWeight: "700", fontSize: 14 }}>
+                Mijn kaart
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/reservations")}
+              activeOpacity={0.85}
+              style={{
+                flex: 1,
+                backgroundColor: colors.white,
+                borderWidth: 2,
+                borderColor: colors.primary,
+                borderRadius: 12,
+                paddingVertical: 11,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MaterialIcons
+                name="add-box"
+                size={18}
+                color={colors.primary}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>
+                Reserveren
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Banner */}

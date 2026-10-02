@@ -26,3 +26,11 @@ fi
 # --clear: zónder dat bewaart Metro een oude EXPO_PUBLIC_-waarde en bouw je
 # stiekem met een verouderde Supabase-URL (of een lege die niet meer klopt).
 npx expo export -p web --clear
+
+# Vercel serveert bij een onbekende URL automatisch 404.html. Zonder deze
+# kopie zien gasten de standaard-404 van Vercel in plaats van onze eigen
+# vriendelijke pagina (app/+not-found.js).
+if [ -f "dist/+not-found.html" ]; then
+  cp "dist/+not-found.html" "dist/404.html"
+  echo "404-pagina klaargezet (dist/404.html)"
+fi
