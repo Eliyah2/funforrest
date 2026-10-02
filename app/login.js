@@ -402,7 +402,7 @@ export default function LoginScreen() {
                     style={{ marginRight: 10 }}
                   />
                   <TextInput
-                    placeholder="bijv. FUNFOREST-ABO"
+                    placeholder="code van je abonnement"
                     value={accessCode}
                     onChangeText={setAccessCode}
                     autoCapitalize="characters"

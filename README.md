@@ -46,16 +46,26 @@ werken opnieuw nadat je de app sluit. Elk apparaat heeft zijn eigen accounts.
 ## Alleen voor vaste abonnementhouders
 
 Nieuwe accounts hebben een **activatiecode** nodig (de code die op de
-seizoenskaart/abonnement staat). Standaard is dat `FUNFOREST-ABO`;
-wijzigen doe je in [`lib/access.js`](lib/access.js):
+seizoenskaart/abonnement staat). Die code staat **nergens plat in de app of de
+repository** — hij wordt alleen gecontroleerd, niet getoond.
 
-- code wijzigen → alleen houders van de nieuwe code kunnen registreren
-- code op `""` zetten → de knop *Registreren* verdwijnt helemaal en er kan
-  alleen nog ingelogd worden met bestaande accounts
+Zo regel je het:
 
-Zonder goede code krijg je: *"Deze activatiecode hoort niet bij een
-abonnement."* Let op: dit is een zachte poort in de app — wil je het waterdicht,
-dan komt er een server-backend (bijv. Supabase) bij die de codes controleert.
+- **Met Supabase (aanbevolen)**: maak per gast een eigen code op het
+  beheerscherm (`/codes`). Standaard is die **één keer geldig**, gekoppeld aan
+  het label (de naam van de gast) — zie *Activatiecodes uitdelen* hieronder.
+  Gasten kunnen de lijst niet uitlezen; de controle gebeurt in de database.
+- **Zonder Supabase**: zet je eigen code in `.env` als
+  `EXPO_PUBLIC_ACCESS_CODE` (of in Vercel → Environment Variables). Staat die
+  niet ingevuld, dan gebruikt de app een ingebouwde noodcode — die is
+  gecodeerd opgeslagen zodat hij niet met een simpele zoekopdracht te vinden
+  is, maar onthoud: een statische app kan geen geheim bewaren.
+- **Registreren sluiten**: zet `EXPO_PUBLIC_ACCESS_CODE=` leeg én zet Supabase
+  uit (of laat `activation_codes` leeg) — de knop *Registreren* verdwijnt en er
+  kan alleen nog ingelogd worden met bestaande accounts.
+
+Zonder goede code krijg je: *"Deze activatiecode klopt niet (meer). Vraag een
+nieuwe code bij het park."*
 
 ## scripts
 
@@ -203,12 +213,18 @@ Wat je dan krijgt:
 
 Zonder Supabase is er **géén codescherm**: het menu-item komt alleen bij een
 beheerder, en die vlag (`profiles.is_admin`) bestaat dan niet. Deel je nog
-geen Supabase-codes, dan werkt voor iedereen dezelfde noodcode
-`FUNFOREST-ABO` (staat in [`lib/access.js`](lib/access.js) — wijzig je die,
-zet de app daarna opnieuw live). Let op: in een **publieke** repository is die
-code leesbaar — maak het repo privé of gebruik de Supabase-codes. Voor live
-gebruik moeten eerst de Supabase-sleutels in Vercel staan (zie hierboven),
-daarna werkt het beheerscherm ook op de site.
+geen Supabase-codes, dan geldt de in de app ingebouwde noodcode: die staat
+niet als tekst in de repository of in de bundel en is te wijzigen via
+`EXPO_PUBLIC_ACCESS_CODE` in `.env` / Vercel. Wil je echt niet dat iemand met
+de bron van de site een account maakt, gebruik dan Supabase-codes — die zijn
+per gast, worden server-side gecontroleerd en kun je per persoon uitzetten.
+Voor live gebruik moeten eerst de Supabase-sleutels in Vercel staan (zie
+hierboven), daarna werkt het beheerscherm ook op de site.
+
+> Het doorgeven van die ene gedeelde noodcode (appje of mail) blijft het
+> zwakke punt: één persoon deelt hem en iedereen kan registreren. Kies je op
+> het codescherm voor **Per gast (1×)**, dan kan elke code maar één keer
+> gebruikt worden en blokkeer je die per persoon.
 
 ## Check-in via QR-scan (alleen de scan telt)
 

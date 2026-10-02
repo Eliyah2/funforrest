@@ -21,6 +21,8 @@ export default function ActivationCodesScreen() {
 
   const [codes, setCodes] = useState([]);
   const [label, setLabel] = useState("");
+  // Standaard één code per gast: na één gebruik is de code op
+  const [singleUse, setSingleUse] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null); // { type, text }
@@ -62,7 +64,11 @@ export default function ActivationCodesScreen() {
     const code = generateActivationCode();
     const { error } = await supabase
       .from("activation_codes")
-      .insert({ code, label: label.trim() });
+      .insert({
+        code,
+        label: label.trim(),
+        max_uses: singleUse ? 1 : 0,
+      });
     if (error) {
       setNotice({
         type: "error",
@@ -206,8 +212,8 @@ export default function ActivationCodesScreen() {
               Beheer werkt alleen met Supabase. Zet de sleutels in{" "}
               <Text style={{ fontWeight: "700" }}>.env</Text> en in Vercel, draai{" "}
               <Text style={{ fontWeight: "700" }}>supabase/schema.sql</Text>, en
-              kom dan terug. Zolang dat niet staat, blijft de noodcode
-              FUNFOREST-ABO werken.
+              kom dan terug. Zolang dat niet staat, blijft de ingebouwde
+              noodcode werken.
             </Text>
           </View>
         )}
@@ -296,6 +302,52 @@ export default function ActivationCodesScreen() {
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* Per persoon of onbeperkt */}
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+              {[
+                { value: true, title: "Per gast (1×)", desc: "Gekoppeld aan één persoon" },
+                { value: false, title: "Onbeperkt", desc: "Zelfde code meermaals" },
+              ].map((opt) => {
+                const selected = singleUse === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={String(opt.value)}
+                    onPress={() => setSingleUse(opt.value)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: selected ? colors.paleGreen : colors.white,
+                      borderWidth: 2,
+                      borderColor: selected ? colors.primary : colors.lightGray,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "700",
+                        color: selected ? colors.primary : colors.text,
+                      }}
+                    >
+                      {opt.title}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: colors.lightBrown,
+                        marginTop: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      {opt.desc}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -363,6 +415,14 @@ export default function ActivationCodesScreen() {
                       ? `${row.used_count}× gebruikt`
                       : `${row.used_count} van ${row.max_uses}× gebruikt`}
                   </Text>
+                  {row.used_by && (
+                    <Text style={{ fontSize: 12, color: colors.success, marginTop: 2 }}>
+                      Gebruikt door {row.used_by}
+                      {row.used_at
+                        ? ` · ${new Date(row.used_at).toLocaleDateString("nl-NL")}`
+                        : ""}
+                    </Text>
+                  )}
                 </View>
                 <TouchableOpacity
                   onPress={() => copyCode(row.code)}

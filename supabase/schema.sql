@@ -154,9 +154,15 @@ create table if not exists public.activation_codes (
   label      text not null default '',               -- voor wie / waarvoor
   max_uses   integer not null default 0,             -- 0 = onbeperkt
   used_count integer not null default 0,
+  used_by    text,                                   -- e-mail van wie hem als eerste gebruikte
+  used_at    timestamptz,                            -- wanneer voor het laatst gebruikt
   active     boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Ook bruikbaar als de tabel al bestaat (eerder uitgevoerde versie):
+alter table public.activation_codes add column if not exists used_by text;
+alter table public.activation_codes add column if not exists used_at timestamptz;
 
 alter table public.activation_codes enable row level security;
 
@@ -219,7 +225,7 @@ revoke all on function public.is_valid_activation_code(text) from public;
 grant execute on function public.is_valid_activation_code(text) to anon, authenticated;
 
 -- Gebruik van een code registreren (na een geslaagde registratie)
-create or replace function public.use_activation_code(p_code text)
+create or replace function public.use_activation_code(p_code text, p_email text default null)
 returns void
 language plpgsql
 security definer
@@ -227,15 +233,22 @@ set search_path = public
 as $$
 begin
   update public.activation_codes
-     set used_count = used_count + 1
+     set used_count = used_count + 1,
+         -- vastleggen wie de code gebruikte, zodat beheer ziet
+         -- welke code bij welke gast hoort (alleen bij het eerste gebruik)
+         used_by = coalesce(used_by, nullif(trim(coalesce(p_email, '')), '')),
+         used_at = now()
    where code = upper(trim(coalesce(p_code, '')))
      and active
      and (max_uses = 0 or used_count < max_uses);
 end;
 $$;
 
-revoke all on function public.use_activation_code(text) from public;
-grant execute on function public.use_activation_code(text) to authenticated;
+-- Oude versie (één argument) weg, als die nog bestaat:
+drop function if exists public.use_activation_code(text);
+
+revoke all on function public.use_activation_code(text, text) from public;
+grant execute on function public.use_activation_code(text, text) to authenticated;
 
 -- =========================================================================
 -- 6. CHECK-INS — QR scannen bij de ingang telt als bezoek

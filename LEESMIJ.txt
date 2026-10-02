@@ -12,13 +12,16 @@ FUNFOREST APP - ZO START JE HET
    - Android: open de Expo Go-app en scan de code
 
 4. Kies "Activeer je kaart", vul je naam, e-mail en wachtwoord in én de
-   ACTIVATIECODE van je seizoenkaart (standaard:  FUNFOREST-ABO ) en klaar.
+   ACTIVATIECODE van je seizoenkaart en klaar.
    Zonder die code kan er niet geregistreerd worden — de app is alleen voor
-   vaste abonnementhouders.
+   vaste abonnementhouders. De code staat nergens in de app geschreven: hij
+   wordt alleen gecontroleerd.
 
-   De code wijzigen? Open  lib\access.js  en pas  ACCESS_CODE  aan.
-   Code leeg ("") maken? Dan verdwijnt registreren helemaal en kan er alleen
-   nog ingelogd worden met bestaande accounts.
+   De code wijzigen? Zet in het bestand  .env  (kopiëren van .env.example):
+      EXPO_PUBLIC_ACCESS_CODE=jouw-code
+   Leeg laten ( EXPO_PUBLIC_ACCESS_CODE= )? Dan verdwijnt registreren en kan
+   er alleen nog ingelogd worden met bestaande accounts. Werkt Supabase, dan
+   maak je per gast een eigen code op het beheerscherm (standaard 1× geldig).
 
 Wil je de app in je browser zien? Typ in plaats van start.bat in een
 terminal (Start-knop > "cmd"):
