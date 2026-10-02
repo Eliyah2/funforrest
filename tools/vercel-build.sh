@@ -23,4 +23,6 @@ else
   echo "SUPABASE_ANON_KEY) en of ze voor Production gelden."
 fi
 
-npx expo export -p web
+# --clear: zónder dat bewaart Metro een oude EXPO_PUBLIC_-waarde en bouw je
+# stiekem met een verouderde Supabase-URL (of een lege die niet meer klopt).
+npx expo export -p web --clear

@@ -105,6 +105,10 @@ function RootNavigator() {
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
+          name="overview"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
           name="checkin"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />

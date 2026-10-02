@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/lib/AuthProvider";
 import { loadReservations, upcomingFor } from "@/lib/reservations";
+import { supabaseEnabled } from "@/lib/supabase";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function DashboardScreen() {
       route: "/info",
       color: colors.lightBrown,
     },
-    // Alleen zichtbaar voor beheerders (het park)
+    // Zichtbaar voor beheerders (het park).
     ...(user?.isAdmin
       ? [
           {
@@ -73,6 +74,20 @@ export default function DashboardScreen() {
             icon: "confirmation-number",
             route: "/codes",
             color: colors.success,
+          },
+        ]
+      : []),
+    // Beheer-overzicht: alleen beheerders, en in de lokale modus (zonder
+    // Supabase is er geen admin-vlag, maar wil je het in de demo wél tonen).
+    ...(user?.isAdmin || !supabaseEnabled
+      ? [
+          {
+            id: 6,
+            title: "Beheer",
+            description: "Wie heeft er gereserveerd?",
+            icon: "groups",
+            route: "/overview",
+            color: colors.heading,
           },
         ]
       : []),

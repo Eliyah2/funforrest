@@ -98,6 +98,11 @@ nieuwe code bij het park."*
   aan 14 dagen), zie per dag de **echte openingstijden** en de tijdslots die
   daarbij passen. Dagen "op aanvraag" of gesloten zijn duidelijk uitgeschakeld,
   6 plekken per slot, bevestigen, bekijken en annuleren
+- **Beheer (voor het park)** — overzicht van alle reserveringen per dag en
+  tijdslot met de namen erbij en hoe vol elk slot is (`x/6`), inclusief de
+  lege slots, want die wil het park juist zien. Alleen voor beheerders
+  (`profiles.is_admin`); zonder Supabase staat het scherm er ook (lokale
+  modus) met een duidelijke waarschuwing dat je alleen dit apparaat ziet
 - **Profiel** — accountgegevens, wachtwoord wijzigen, meldingen aan/uit en
   uitloggen
 - **Informatie** — het echte adres, telefoonnummer en e-mail van Fun Forest
