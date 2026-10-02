@@ -1,5 +1,5 @@
 {
-  "buildCommand": "export EXPO_PUBLIC_SUPABASE_URL=\"${EXPO_PUBLIC_SUPABASE_URL:-${SUPABASE_URL:-${NEXT_PUBLIC_SUPABASE_URL:-}}}\" && export EXPO_PUBLIC_SUPABASE_ANON_KEY=\"${EXPO_PUBLIC_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}}}\" && npx expo export -p web",
+  "buildCommand": "sh tools/vercel-build.sh",
   "outputDirectory": "dist",
   "devCommand": "npx expo",
   "framework": null,
