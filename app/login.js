@@ -86,7 +86,13 @@ export default function LoginScreen() {
       await signup(email, password, name, accessCode, passNumber.trim() || null);
       router.push("/dashboard");
     } catch (err) {
-      setFormError(`Registratie mislukt: ${err.message}`);
+      // Bevestigingsmail is geen fout maar een aanwijzing: toon hem als
+      // informatie, anders denkt de gast dat registreren mislukt is.
+      if (/e-mail om je account te bevestigen/i.test(String(err.message))) {
+        setNotice(err.message);
+      } else {
+        setFormError(`Registratie mislukt: ${err.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
