@@ -114,7 +114,7 @@ export default function LoginScreen() {
           {/* Header with Logo */}
           <View style={{ alignItems: "center", marginBottom: 40 }}>
             <Image
-              source={require("@/assets/brand/funforest-logo.png")}
+              source={require("@/assets/brand/funforest-logo-web.png")}
               style={{ width: 104, height: 104, marginBottom: 16 }}
               resizeMode="contain"
               accessibilityLabel="Fun Forest logo"
@@ -670,8 +670,8 @@ export default function LoginScreen() {
             }}
           >
             <Image
-              source={require("@/assets/brand/funforest-logo.png")}
-              style={{ width: 200, height: 200 }}
+            source={require("@/assets/brand/funforest-logo-web.png")}
+            style={{ width: 200, height: 200 }}
               resizeMode="contain"
             />
           </View>

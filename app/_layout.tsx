@@ -7,7 +7,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, Platform, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import "react-native-reanimated";
+
+// Let op: er staat hier bewust GEEN `import "react-native-reanimated"`.
+// Die side-effect-import slepte reanimated + worklets de web-bundel in
+// (~50 kB gzip) terwijl de app geen enkele animatie ermee doet. Moet het ooit
+// nodig zijn, dan zet je die regel hier terug.
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";

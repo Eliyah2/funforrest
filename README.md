@@ -131,6 +131,30 @@ automatische zoom op mobiel) en op brede schermen staat alles in een gecentreerd
 kolom van maximaal 560 px, zodat niets wordt uitgerekt. Getest op 320–390 px
 (telefoon) en 1440 px (laptop).
 
+## Snelheid
+
+De app is een statische site, dus laadtijd = hoeveel er gedownload moet
+worden. Wat er nu aan gedaan is:
+
+- **Bundel ~20% kleiner**: `react-native-reanimated` werd alleen geïmporteerd
+  in [`app/_layout.tsx`](app/_layout.tsx) en sleepte reanimated + worklets
+  mee (~140 kB gzip) terwijl de app geen animatie ermee doet. Die import is
+  weg; zet je hem terug, dan groeit de bundel weer.
+- **Font pakt mee**: het MaterialIcons-font (177 kB) begon pas te laden
+  ná het JavaScript. [`app/+html.js`](app/+html.js) preloadt het, zodat het
+  gelijk met de bundel loopt, en preconnectt op Supabase (bespaart een
+  DNS- en TLS-handshake bij het herstellen van de sessie).
+- **Afbeeldingen**: alleen de 400 px-variant van het logo gaat mee i.p.v. het
+  2560 px origineel (114 kB → 40 kB).
+- **Caching**: [`vercel.json`](vercel.json) zet `Cache-Control: immutable`
+  op `/_expo/static/*` en `/assets/*`. Die bestanden hebben een
+  inhouds-hash in de naam, dus ze veranderen nooit — bij een herbezoek hoeft
+  er dus niets opgehaald of gecontroleerd te worden. Alleen de HTML blijft
+  `max-age=0` zodat een nieuwe versie meteen zichtbaar is.
+- **Server dichtbij**: Vercel serveert vanaf de dichtstbijzijnde edge
+  (TTFB ~80 ms). De openingstijden komen 1× per 6 uur uit de cache
+  (`lib/parkHours.js`) en blokkeren de eerste weergave niet.
+
 ## Publiceren op Vercel
 
 De app is een statische export (een HTML-bestand per route), dus Vercel kan
@@ -271,7 +295,14 @@ alleen nog op knoppen, iconen en accenten zit zoals op hun site:
 | Antraciet tekst | `#182230` | `.text-font` |
 | Fout-rood | `#DA3A2F` | waarschuwingen |
 
-- Logo: `assets/brand/funforest-logo.png` (oranje, transparante achtergrond)
+- Logo: `assets/brand/funforest-logo.png` (oranje, transparante achtergrond,
+  2560×2560 — dat is de bron voor de iconen). In de app zelf wordt de
+  kleinere variant gebruikt (`funforest-logo-web.png`, 400 px, ~40 kB), zodat
+  de eerste laadactie geen onnodig grote afbeelding ophaalt. Opnieuw maken:
+
+  ```bash
+  powershell -ExecutionPolicy Bypass -File tools\make-web-logo.ps1
+  ```
 - App-icoon, splash en favicon zijn eruit gegenereerd. Opnieuw doen:
 
   ```bash
